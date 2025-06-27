@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Gigs Attended</h2>
+<ul>
+  {% for gig in gigs %}
+    <li>{{ gig.band_name }} - {{ gig.date }} at {{ gig.venue }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}
