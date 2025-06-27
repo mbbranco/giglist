@@ -1,9 +1,0 @@
-{% extends 'layout.html' %}
-{% block content %}
-<h2>Favorite Bands</h2>
-<ul>
-  {% for band in bands %}
-    <li>{{ band.name }} - {{ band.followers }} at {{ band.popularity }}</li>
-  {% endfor %}
-</ul>
-{% endblock %}

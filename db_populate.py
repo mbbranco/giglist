@@ -7,7 +7,8 @@ cur = conn.cursor()
 # Drop existing tables (if they exist)
 cur.execute('DROP TABLE IF EXISTS bands')
 cur.execute('DROP TABLE IF EXISTS gigs')
-
+cur.execute('DROP TABLE IF EXISTS genres')
+cur.execute('DROP TABLE IF EXISTS genres_bands')
 
 # Create tables
 cur.execute('''
@@ -32,6 +33,15 @@ CREATE TABLE gigs (
 ''')
 
 
+cur.execute('''
+CREATE TABLE genres_bands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    genre_name TEXT,
+    band_name TEXT
+)
+''')
+
+
 # Get Data from Sheets
 import pandas as pd 
 
@@ -45,26 +55,44 @@ csv_url = sheet_url.replace('/edit?usp=sharing', '/export?format=csv')
 df = pd.read_csv(csv_url)
 
 
+# Add gigs info to database
+gigs = []
+for i,g in df.iterrows():
+    gigs.append((g['Artista'],g['Data'],g['Local']))
+
+
 # PREPARE DATA
 from spotify_api import get_access_token, get_artist_info
 
 # Get access token once (not per artist)
 token = get_access_token()
 
+genres = []
 bands = []
+genres_bands = {}
 for b in df['Artista'].unique():
     info = get_artist_info(b, token)
+    print(info)
     bands.append((b, info['name'], info['followers'], info['popularity'], info['spotify_url'], info['image_url']))
+    genres_bands[info['name']] = info['genres']
+    
     if b!=info['name']:
-        print(b)
+         print(b)
 
-gigs = []
-for i,g in df.iterrows():
-    gigs.append((g['Artista'],g['Data'],g['Local']))
+genres_bands_list = []
+for k, val in genres_bands.items():
+    for v in val:
+        print(v,k)
+        genres_bands_list.append((v,k))
+
+print(genres_bands_list)
+    
    
 # POPULATE DATA
-cur.executemany('INSERT INTO bands (name,spotify_name,followers,popularity,spotify_url,image_url) VALUES (?,?,?,?,?,?)', bands)
 cur.executemany('INSERT INTO gigs (band_name, date, venue) VALUES (?, ?, ?)', gigs)
+cur.executemany('INSERT INTO bands (name,spotify_name,followers,popularity,spotify_url,image_url) VALUES (?,?,?,?,?,?)', bands)
+cur.executemany('INSERT INTO genres_bands (genre_name,band_name) VALUES (?,?)', genres_bands_list)
+
 
 conn.commit()
 conn.close()
